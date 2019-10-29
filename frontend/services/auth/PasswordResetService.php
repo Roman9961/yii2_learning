@@ -10,6 +10,7 @@ use frontend\forms\ResetPasswordForm;
 use frontend\forms\SignupForm;
 use Yii;
 use yii\base\InvalidArgumentException;
+use yii\mail\MailerInterface;
 
 class PasswordResetService
 {
@@ -18,10 +19,15 @@ class PasswordResetService
      */
     private $_user;
     private $supportEmail;
+    /**
+     * @var MailerInterface
+     */
+    private $mailer;
 
-    public function __construct($supportEmail)
+    public function __construct($supportEmail, MailerInterface $mailer)
     {
         $this->supportEmail = $supportEmail;
+        $this->mailer = $mailer;
     }
 
     /**
@@ -76,7 +82,7 @@ class PasswordResetService
 
     private function sendEmail(User $user, PasswordResetRequestForm $form)
     {
-        return Yii::$app
+        return $this
             ->mailer
             ->compose(
                 ['html' => 'passwordResetToken-html', 'text' => 'passwordResetToken-text'],
