@@ -1,5 +1,5 @@
 <?php
-namespace common\models;
+namespace common\entities;
 
 use Yii;
 use yii\base\NotSupportedException;
@@ -24,10 +24,22 @@ use yii\web\IdentityInterface;
  */
 class User extends ActiveRecord implements IdentityInterface
 {
+
     const STATUS_DELETED = 0;
     const STATUS_INACTIVE = 9;
     const STATUS_ACTIVE = 10;
 
+
+    public static function signup(string $username, string $email, string $password) : User
+    {
+        $user = new static();
+        $user->username = $username;
+        $user->email = $email;
+        $user->setPassword($password);
+        $user->generateAuthKey();
+        $user->generateEmailVerificationToken();
+        return $user;
+    }
 
     /**
      * {@inheritdoc}
@@ -191,6 +203,10 @@ class User extends ActiveRecord implements IdentityInterface
      */
     public function generatePasswordResetToken()
     {
+        if(!empty($this->password_reset_token) && self::isPasswordResetTokenValid($this->password_reset_token)){
+            throw new \DomainException('Password reseting is already requested');
+        }
+
         $this->password_reset_token = Yii::$app->security->generateRandomString() . '_' . time();
     }
 
@@ -205,5 +221,10 @@ class User extends ActiveRecord implements IdentityInterface
     public function removePasswordResetToken()
     {
         $this->password_reset_token = null;
+    }
+
+    public function isActive()
+    {
+        return $this->status === self::STATUS_ACTIVE;
     }
 }

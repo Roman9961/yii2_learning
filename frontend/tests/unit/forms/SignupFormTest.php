@@ -2,7 +2,8 @@
 namespace frontend\tests\unit\models;
 
 use common\fixtures\UserFixture;
-use frontend\models\SignupForm;
+use frontend\forms\SignupForm;
+use frontend\services\auth\SignupService;
 
 class SignupFormTest extends \Codeception\Test\Unit
 {
@@ -16,7 +17,7 @@ class SignupFormTest extends \Codeception\Test\Unit
     {
         $this->tester->haveFixtures([
             'user' => [
-                'class' => UserFixture::className(),
+                'class' => UserFixture::class,
                 'dataFile' => codecept_data_dir() . 'user.php'
             ]
         ]);
@@ -24,20 +25,20 @@ class SignupFormTest extends \Codeception\Test\Unit
 
     public function testCorrectSignup()
     {
-        $model = new SignupForm([
+        $form = new SignupForm([
             'username' => 'some_username',
             'email' => 'some_email@example.com',
             'password' => 'some_password',
         ]);
 
-        $user = $model->signup();
+        $user = (new SignupService())->signup($form);
         expect($user)->true();
 
-        /** @var \common\models\User $user */
-        $user = $this->tester->grabRecord('common\models\User', [
+        /** @var \common\entities\User $user */
+        $user = $this->tester->grabRecord('common\entities\User', [
             'username' => 'some_username',
             'email' => 'some_email@example.com',
-            'status' => \common\models\User::STATUS_INACTIVE
+            'status' => \common\entities\User::STATUS_INACTIVE
         ]);
 
         $this->tester->seeEmailIsSent();
@@ -53,19 +54,19 @@ class SignupFormTest extends \Codeception\Test\Unit
 
     public function testNotCorrectSignup()
     {
-        $model = new SignupForm([
+        $form = new SignupForm([
             'username' => 'troy.becker',
             'email' => 'nicolas.dianna@hotmail.com',
             'password' => 'some_password',
         ]);
 
-        expect_not($model->signup());
-        expect_that($model->getErrors('username'));
-        expect_that($model->getErrors('email'));
+        expect_not((new SignupService())->signup($form));
+        expect_that($form->getErrors('username'));
+        expect_that($form->getErrors('email'));
 
-        expect($model->getFirstError('username'))
+        expect($form->getFirstError('username'))
             ->equals('This username has already been taken.');
-        expect($model->getFirstError('email'))
+        expect($form->getFirstError('email'))
             ->equals('This email address has already been taken.');
     }
 }
